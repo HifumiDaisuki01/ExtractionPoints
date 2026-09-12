@@ -102,6 +102,25 @@ public class ExtractionManager {
 
     /** 驱动 NORMAL / ITEM 的玩家独立计时。 */
     private void tickPlayerTimers() {
+        // 物品撤离补检：玩家在区域内但尚未开始计时（进场时缺物品），
+        // 每秒复查背包，一旦携带所需物品立即开始计时。
+        for (Map.Entry<UUID, String> e : new HashMap<>(playerInPoint).entrySet()) {
+            UUID uuid = e.getKey();
+            if (playerTimers.containsKey(uuid)) continue;
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null || !player.isOnline()) continue;
+            ExtractPoint point = plugin.getConfigManager().get(e.getValue());
+            if (point == null || !point.isEnabled() || point.getType() != ExtractType.ITEM) continue;
+            if (player.hasPermission("extraction.command.bypass")
+                    || checkItemCondition(player, point, false)) {
+                playerTimers.put(uuid, point.getId());
+                playerRemaining.put(uuid, point.getCountdown());
+                showPlayerBar(player, point);
+                sendMessage(player, "messages.entered-area", "point", point.getId(),
+                        "time", Text.formatTime(point.getCountdown()));
+            }
+        }
+
         for (UUID uuid : new HashSet<>(playerTimers.keySet())) {
             Player player = Bukkit.getPlayer(uuid);
             String pointId = playerTimers.get(uuid);
@@ -247,15 +266,19 @@ public class ExtractionManager {
     }
 
     private void onEnterPlayerTimer(Player player, ExtractPoint point) {
+        // 物品撤离点：进入时未携带所需物品 → 不开始计时、不显示 BossBar，
+        // 玩家在区域内补到物品后由 tick 补检自动开始（messages.entered-area 此时提示）。
+        boolean bypass = player.hasPermission("extraction.command.bypass");
+        if (point.hasItemCondition() && !bypass && !checkItemCondition(player, point, false)) {
+            sendMessage(player, "messages.missing-item", "item",
+                    point.getItems().isEmpty() ? "-" : point.getItems().get(0).toString());
+            return;
+        }
+
         // 进入即重新计时（离开已清零，反复进出不会错误累积时间）
         playerTimers.put(player.getUniqueId(), point.getId());
         playerRemaining.put(player.getUniqueId(), point.getCountdown());
 
-        if (point.hasItemCondition() && !checkItemCondition(player, point, false)
-                && !player.hasPermission("extraction.command.bypass")) {
-            sendMessage(player, "messages.missing-item", "item",
-                    point.getItems().isEmpty() ? "-" : point.getItems().get(0).toString());
-        }
         showPlayerBar(player, point);
         sendMessage(player, "messages.entered-area", "point", point.getId(),
                 "time", Text.formatTime(point.getCountdown()));
@@ -376,7 +399,14 @@ public class ExtractionManager {
      * 执行一次撤离：条件校验 → 扣除物品 → 传送 → 后处理。
      */
     public boolean completeExtraction(Player player, ExtractPoint point) {
-        boolean bypass = player.hasPermission("extraction.command.bypass");
+        return completeExtraction(player, point, false);
+    }
+
+    /**
+     * @param ignoreConditions true 时不校验也不消耗物品（管理命令 /extract force 使用）
+     */
+    public boolean completeExtraction(Player player, ExtractPoint point, boolean ignoreConditions) {
+        boolean bypass = ignoreConditions || player.hasPermission("extraction.command.bypass");
 
         // 1. 最终条件校验（含物品消耗）
         if (point.hasItemCondition() && !bypass) {

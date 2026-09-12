@@ -8,6 +8,7 @@ import org.bukkit.configuration.ConfigurationSection;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 撤离点配置模型（不可变，重载时整体重建）。
@@ -42,6 +43,9 @@ public class ExtractPoint {
     private final int switchCooldown;         // 两次拉闸之间的冷却秒数
     private final boolean resetSwitchAfterFinish; // 倒计时结束后自动复位闸门
 
+    // 物理拉杆绑定：这些坐标的拉杆被右键时触发拉闸（多人地图可绑多个）
+    private final List<Location> levers;
+
     // 拉闸警报（仅通知闸点周围 radius 格内的玩家）
     private final Location alarmAnchor;       // 警报锚点（闸门位置）
     private final boolean explicitAlarmLocation; // 是否在配置中明确写了 x/y/z
@@ -67,7 +71,8 @@ public class ExtractPoint {
                         boolean interruptOnDeath, boolean interruptOnTeleport, String bossBarTitle,
                         String bossBarColor, String bossBarStyle, boolean bossBarShowGlobal,
                         List<ItemCondition> items, String switchId, int globalCountdown, int switchCooldown,
-                        boolean resetSwitchAfterFinish, Location alarmAnchor, boolean explicitAlarmLocation,
+                        boolean resetSwitchAfterFinish, List<Location> levers,
+                        Location alarmAnchor, boolean explicitAlarmLocation,
                         Sound alarmSound, float alarmVolume, float alarmPitch, double alarmRadius,
                         boolean clearInventory, boolean loseBackpack, boolean healAfterExtract,
                         boolean feedAfterExtract, String broadcastMessage, boolean enabled, String permission) {
@@ -90,6 +95,7 @@ public class ExtractPoint {
         this.globalCountdown = globalCountdown;
         this.switchCooldown = switchCooldown;
         this.resetSwitchAfterFinish = resetSwitchAfterFinish;
+        this.levers = levers == null ? new ArrayList<>() : levers;
         this.alarmAnchor = alarmAnchor;
         this.explicitAlarmLocation = explicitAlarmLocation;
         this.alarmSound = alarmSound;
@@ -149,6 +155,25 @@ public class ExtractPoint {
         int switchCooldown = sw == null ? 60 : sw.getInt("cooldown", 60);
         boolean resetAfterFinish = sw == null || sw.getBoolean("reset-after-finish", true);
 
+        // 物理拉杆绑定列表
+        List<Location> levers = new ArrayList<>();
+        if (sw != null) {
+            List<Map<?, ?>> rawLevers = sw.getMapList("levers");
+            for (Map<?, ?> m : rawLevers) {
+                Object wx = m.get("world"), xx = m.get("x"), yy = m.get("y"), zz = m.get("z");
+                if (wx == null || xx == null || yy == null || zz == null) continue;
+                World lw = Bukkit.getWorld(String.valueOf(wx));
+                if (lw == null) continue;
+                try {
+                    levers.add(new Location(lw,
+                            Double.parseDouble(String.valueOf(xx)),
+                            Double.parseDouble(String.valueOf(yy)),
+                            Double.parseDouble(String.valueOf(zz))));
+                } catch (NumberFormatException ignored) {
+                }
+            }
+        }
+
         // 拉闸警报配置
         boolean explicitAnchor = hasExplicitAlarmLocation(sec, sw);
         Location anchor = parseAlarmAnchor(sec, sw, worldName, dest);
@@ -172,7 +197,7 @@ public class ExtractPoint {
 
         return new ExtractPoint(id, type, region, worldName, countdown, dest, onMoveOut, onDamage, onDeath,
                 onTeleport, barTitle, barColor, barStyle, barGlobal, items.list, switchId, globalCountdown,
-                switchCooldown, resetAfterFinish, anchor, explicitAnchor, alarmSound, alarmVolume,
+                switchCooldown, resetAfterFinish, levers, anchor, explicitAnchor, alarmSound, alarmVolume,
                 alarmPitch, alarmRadius,
                 clearInv, loseBag, heal, feed, broadcast, enabled, permission);
     }
@@ -370,6 +395,11 @@ public class ExtractPoint {
 
     public boolean isResetSwitchAfterFinish() {
         return resetSwitchAfterFinish;
+    }
+
+    /** 绑定的物理拉杆坐标列表（右键即拉闸）。 */
+    public List<Location> getLevers() {
+        return levers;
     }
 
     public Location getAlarmAnchor() {

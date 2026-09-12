@@ -50,6 +50,8 @@ public class ExtractCommand implements CommandExecutor, TabCompleter {
             case "stop" -> doStop(sender, args);
             case "force" -> doForce(sender, args);
             case "here" -> doHere(sender);
+            case "bind" -> doBind(sender, args);
+            case "unbind" -> doUnbind(sender, args);
             default -> sendHelp(sender, label);
         }
         return true;
@@ -181,6 +183,54 @@ public class ExtractCommand implements CommandExecutor, TabCompleter {
     }
 
     /**
+     * /extract bind <switchId>
+     * 进入绑定模式：30 秒内右键世界中的拉杆，把该拉杆绑定到指定闸门。
+     * 玩家右键绑定的拉杆即触发拉闸，反馈只发给触发者本人。
+     */
+    private void doBind(CommandSender sender, String[] args) {
+        if (!check(sender, "extraction.command.switch")) return;
+        if (!(sender instanceof Player player)) {
+            Text.send(sender, plugin.getConfig(), "&c该命令只能由玩家执行。");
+            return;
+        }
+        if (args.length < 2) {
+            Text.send(sender, plugin.getConfig(), "&c用法：/extract bind <switchId>");
+            return;
+        }
+        String switchId = args[1];
+        boolean found = plugin.getConfigManager().getBySwitch(switchId).stream()
+                .anyMatch(p -> p.getType() == ExtractType.SWITCH);
+        if (!found) {
+            Text.send(sender, plugin.getConfig(), "&c未找到拉闸类型撤离点：&f" + switchId);
+            return;
+        }
+        plugin.setBindPending(player.getUniqueId(), switchId);
+        Text.send(sender, plugin.getConfig(), "&a绑定模式已开启（30 秒）。");
+        Text.send(sender, plugin.getConfig(), "&7请右键点击要绑定的 &f拉杆&7，坐标将写入配置。");
+    }
+
+    /**
+     * /extract unbind <switchId>
+     * 清空某闸门的全部拉杆绑定。
+     */
+    private void doUnbind(CommandSender sender, String[] args) {
+        if (!check(sender, "extraction.command.switch")) return;
+        if (args.length < 2) {
+            Text.send(sender, plugin.getConfig(), "&c用法：/extract unbind <switchId>");
+            return;
+        }
+        ExtractPoint point = resolvePoint(args[1]);
+        if (point == null || point.getType() != ExtractType.SWITCH) {
+            Text.send(sender, plugin.getConfig(), "&c未找到拉闸类型撤离点：&f" + args[1]);
+            return;
+        }
+        plugin.getConfig().set("extraction-points." + point.getId() + ".switch.levers", null);
+        plugin.saveConfig();
+        plugin.getConfigManager().load();
+        Text.send(sender, plugin.getConfig(), "&a已清空 &f" + point.getId() + " &a的全部拉杆绑定。");
+    }
+
+    /**
      * /extract reset <id|all>
      * 重置撤离点运行时状态（清空玩家计时、全局倒计时、闸门与冷却）。
      */
@@ -282,7 +332,7 @@ public class ExtractCommand implements CommandExecutor, TabCompleter {
             Text.send(sender, plugin.getConfig(), "&c未找到撤离点：&f" + args[2]);
             return;
         }
-        boolean ok = plugin.getExtractionManager().completeExtraction(target, point);
+        boolean ok = plugin.getExtractionManager().completeExtraction(target, point, true);
         Text.send(sender, plugin.getConfig(), ok ? "&a已强制 &f" + target.getName()
                 + " &a从 &f" + point.getId() + " &a撤离。" : "&c撤离失败，请检查目标世界是否加载。");
     }
@@ -371,6 +421,8 @@ public class ExtractCommand implements CommandExecutor, TabCompleter {
         Text.sendRaw(sender, " &f/" + label + " info <id> &7- 查看撤离点详情");
         Text.sendRaw(sender, " &f/" + label + " here &7- 查看当前所在撤离点");
         Text.sendRaw(sender, " &f/" + label + " switch <id> [on|off|toggle] &7- 操作闸门");
+        Text.sendRaw(sender, " &f/" + label + " bind <switchId> &7- 绑定拉杆（右键拉杆拉闸）");
+        Text.sendRaw(sender, " &f/" + label + " unbind <switchId> &7- 清空拉杆绑定");
         Text.sendRaw(sender, " &f/" + label + " start <id> &7- 直接启动全局倒计时");
         Text.sendRaw(sender, " &f/" + label + " stop <id> &7- 停止全局倒计时");
         Text.sendRaw(sender, " &f/" + label + " reset <id|all> &7- 重置运行状态");
@@ -388,8 +440,8 @@ public class ExtractCommand implements CommandExecutor, TabCompleter {
                                       @NotNull String alias, @NotNull String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            result.addAll(Arrays.asList("list", "info", "here", "switch", "start", "stop",
-                    "reset", "force", "reload", "help"));
+            result.addAll(Arrays.asList("list", "info", "here", "switch", "bind", "unbind",
+                    "start", "stop", "reset", "force", "reload", "help"));
         } else if (args.length == 2) {
             String sub = args[0].toLowerCase();
             if (sub.equals("info") || sub.equals("start") || sub.equals("stop")) {

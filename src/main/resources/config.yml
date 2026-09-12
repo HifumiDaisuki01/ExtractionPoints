@@ -80,6 +80,9 @@ messages:
   # 拉闸时对闸点周围玩家的通知（默认就是警报文本）
   switch-pulled: "&4&l⚠ 警报 &r&f撤离点被开启！ &7(&f{point}&7) &8剩余 &f{time}"
 
+  # 拉闸成功后对触发者本人的确认（只有拉闸的人能看到）
+  switch-pulled-self: "&a闸门已开启！撤离点 &f{point} &a的撤离窗口 &f{time}&a。" 
+
   # 玩家进入一个正在进行中的拉闸撤离点
   enter-active-countdown: "&e撤离点 &f{point} &e正在倒计时，剩余 &f{time}&e，请停留在区域内。"
 
@@ -194,6 +197,20 @@ extraction-points:
       cooldown: 60
       # 倒计时结束后是否自动复位闸门（允许再次拉闸）
       reset-after-finish: true
+
+      # ---- 物理拉杆绑定（推荐，替代命令方块）----
+      # 用 /extract bind <id> 绑定后，玩家右键这些拉杆即触发拉闸。
+      # 拉闸结果（成功/冷却/已开启）只发给触发者本人，不会广播失败信息。
+      # 也可直接手写坐标：
+      # levers:
+      #   - world: "world"
+      #     x: 120
+      #     y: 64
+      #     z: -88
+      #   - world: "world"
+      #     x: -35
+      #     y: 70
+      #     z: 210
 
       # ---- 拉闸警报 ----
       alarm:

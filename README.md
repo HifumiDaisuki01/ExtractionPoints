@@ -58,13 +58,27 @@
 | `/extract list` | 列出全部撤离点 |
 | `/extract info <id>` | 查看撤离点详情（含闸门状态/剩余时间） |
 | `/extract here` | 查看自己当前所在撤离点与倒计时 |
-| `/extract switch <id> [on\|off\|toggle]` | 手动拉闸/复位闸门 |
+| `/extract switch <id> [on\|off\|toggle]` | 手动拉闸/复位闸门（命令方块可用） |
+| `/extract bind <switchId>` | 绑定拉杆：30 秒内右键世界中的拉杆即写入配置 |
+| `/extract unbind <switchId>` | 清空某闸门的全部拉杆绑定 |
 | `/extract start <id>` / `stop <id>` | 直接启停全局倒计时 |
 | `/extract reset <id\|all>` | 重置运行状态（清计时/冷却/闸门） |
 | `/extract force <玩家> <id>` | 强制某玩家立即撤离 |
 | `/extract reload` | 重载配置 |
 
 闸门状态落盘在 `plugins/ExtractionPoints/data.yml`，重启不丢失。
+
+## 拉杆触发（推荐替代命令方块）
+
+```
+/extract bind power_plant_main
+# 30 秒内右键你想绑定的拉杆，坐标自动写入 config.yml
+```
+
+- 玩家右键已绑定的拉杆即触发全局倒计时，**无需命令方块、无需权限**
+- 拉闸结果（成功 / 冷却剩余 X 秒 / 已开启）**只发给触发者本人**，不会向任何人广播失败信息，不暴露闸门状态
+- 成功时仍按配置半径向周围播放警报与文本（正常游戏设计）
+- 一个闸门可绑多个拉杆；`/extract switch` 命令保持可用，两者互不影响
 
 ## 已实测项（Paper 1.20.1 + WG 7.0.9 沙盒环境）
 

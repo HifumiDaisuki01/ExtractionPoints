@@ -1,5 +1,5 @@
 name: ExtractionPoints
-version: '1.0.0'
+version: '1.0.1'
 main: com.example.extraction.ExtractionPlugin
 api-version: '1.20'
 author: Example
@@ -51,5 +51,5 @@ permissions:
     description: 查看当前位置所在撤离点
     default: op
   extraction.command.bypass:
-    description: 绕过物品条件（调试用）
-    default: op
+    description: 绕过物品条件（仅限调试，默认无人拥有）
+    default: false

@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.example'
-version = '1.0.0'
+version = '1.0.1'
 description = 'Search & Extract - Extraction Points plugin for Paper 1.20.1'
 
 repositories {

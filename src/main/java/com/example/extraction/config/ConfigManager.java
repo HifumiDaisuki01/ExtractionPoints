@@ -85,6 +85,25 @@ public class ConfigManager {
     }
 
     /**
+     * 按绑定的物理拉杆坐标查找拉闸撤离点。
+     */
+    public ExtractPoint getByLever(org.bukkit.Location lever) {
+        for (ExtractPoint point : points.values()) {
+            if (point.getLevers().isEmpty()) continue;
+            for (org.bukkit.Location l : point.getLevers()) {
+                if (l.getWorld() != null
+                        && l.getWorld().equals(lever.getWorld())
+                        && l.getBlockX() == lever.getBlockX()
+                        && l.getBlockY() == lever.getBlockY()
+                        && l.getBlockZ() == lever.getBlockZ()) {
+                    return point;
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
      * 查找所有使用指定 switchId 的撤离点。
      */
     public java.util.List<ExtractPoint> getBySwitch(String switchId) {
