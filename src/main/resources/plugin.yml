@@ -1,0 +1,55 @@
+name: ExtractionPoints
+version: '1.0.0'
+main: com.example.extraction.ExtractionPlugin
+api-version: '1.20'
+author: Example
+description: 搜打撤撤离点插件 - 常规撤离 / 拉闸撤离 / 物品撤离
+website: https://example.com
+
+softdepend:
+  - WorldGuard
+  - WorldEdit
+
+commands:
+  extract:
+    description: 撤离点管理命令
+    usage: /extract <help|list|info|reload|switch|reset|start|stop|force|here>
+    aliases: [extraction, ep]
+
+permissions:
+  extraction.admin:
+    description: 撤离点插件全部管理权限
+    default: op
+    children:
+      extraction.command.list: true
+      extraction.command.info: true
+      extraction.command.reload: true
+      extraction.command.switch: true
+      extraction.command.reset: true
+      extraction.command.force: true
+      extraction.command.here: true
+      extraction.command.bypass: true
+  extraction.command.list:
+    description: 查看全部撤离点
+    default: op
+  extraction.command.info:
+    description: 查看指定撤离点详情
+    default: op
+  extraction.command.reload:
+    description: 重载配置
+    default: op
+  extraction.command.switch:
+    description: 手动拉闸 / 复位闸门
+    default: op
+  extraction.command.reset:
+    description: 重置撤离点运行状态
+    default: op
+  extraction.command.force:
+    description: 强制开始 / 停止全局倒计时
+    default: op
+  extraction.command.here:
+    description: 查看当前位置所在撤离点
+    default: op
+  extraction.command.bypass:
+    description: 绕过物品条件（调试用）
+    default: op

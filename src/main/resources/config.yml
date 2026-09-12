@@ -1,0 +1,276 @@
+# ========================================================
+#  搜打撤 · 撤离点插件配置文件
+#  适用：Paper 1.20.1 + WorldGuard 7.0.9
+# ========================================================
+#
+#  【核心概念】
+#  所有撤离点都以 WorldGuard 区域（region）为触发锚点。
+#  你需要先用 WorldGuard 划好区域：
+#      /rg define <区域名>
+#      /rg addmember -w <世界> -a ...
+#  然后在下方提取相应区域名即可。
+#
+#  【三种撤离类型 type】
+#   NORMAL  - 常规撤离：玩家进入区域后独立计时，等够时间自动撤走。
+#             离开区域倒计时清零，再次进入重新计时。
+#   SWITCH  - 拉闸撤离：拉闸后开始一个【全局倒计时】。
+#             倒计时期间处于区域内的玩家可见 BossBar；
+#             离开区域 BossBar 消失但倒计时继续进行；
+#             倒计时结束时，仍在区域内的玩家被撤离。
+#             没赶上的玩家必须重新拉闸。
+#   ITEM    - 物品撤离：和 NORMAL 一样独立计时，但必须持有指定物品。
+#             可配置是否消耗该物品。
+#
+#  【计时模型说明】
+#   NORMAL / ITEM 的计时是「按玩家」的，互不干扰。
+#   SWITCH 的计时是「按闸门」的全局计时，使用绝对时间戳，不会因为
+#   玩家反复进出而错乱，也不会因为服务器卡顿而漂移。
+
+settings:
+  # 区域检测间隔提示（仅供文档参考；实际检测由 PlayerMoveEvent 驱动，
+  # 且只在玩家跨越方块坐标时才查询 WorldGuard）
+  region-check-interval: 5
+
+  # ---- 拉闸通知范围 ----
+  notification:
+    # 拉闸通知与警报声的覆盖半径（格）。
+    # 只会通知「闸点所在世界」且在此半径内的玩家，
+    # 不会打扰其他地图 / 全服玩家。
+    radius: 300.0
+
+  # ---- 撤离成功音效 ----
+  extract-sound:
+    volume: 1.0
+    pitch: 1.4
+
+  # 撤离成功时的全服播报。留空则不播报。
+  # 可用占位符：{player} {point}
+  broadcast-extract-message: "&7[&a撤离&7] &f{player} &7已从 &f{point} &7成功撤离"
+
+# ========================================================
+#  消息文本
+#  颜色用 & 符号。占位符：{point} {player} {time} {item} {world}
+# ========================================================
+messages:
+  prefix: "&8[&c撤离&8] &r"
+
+  # 玩家进入撤离点区域
+  entered-area: "&e你已进入撤离点 &f{point}&e，需停留 &f{time}&e。"
+
+  # 玩家离开撤离点区域（中断计时）
+  left-area: "&c你已离开撤离点 &f{point}&c，撤离已中断。"
+
+  # 受伤中断
+  interrupted-damage: "&c你受到伤害，撤离已被打断！"
+
+  # 传送中断
+  interrupted-teleport: "&c你被传送离开，撤离已被打断。"
+
+  # 缺少所需物品
+  missing-item: "&c你需要携带 &f{item} &c才能撤离。"
+
+  # 撤离成功
+  extract-success: "&a撤离成功！你已安全抵达 &f{world}&a。"
+
+  # 丢包撤：提示主背包已被清空
+  lose-backpack: "&c&l丢包撤离 &r&7- 你的主背包已被清空，仅保留快捷栏与装备。"
+
+  # 撤离成功的附近/全服播报（若撤离点未单独配置 broadcast 则用 settings 里那条）
+
+  # 拉闸时对闸点周围玩家的通知（默认就是警报文本）
+  switch-pulled: "&4&l⚠ 警报 &r&f撤离点被开启！ &7(&f{point}&7) &8剩余 &f{time}"
+
+  # 玩家进入一个正在进行中的拉闸撤离点
+  enter-active-countdown: "&e撤离点 &f{point} &e正在倒计时，剩余 &f{time}&e，请停留在区域内。"
+
+  # 拉闸撤离点还未拉闸时进入
+  switch-not-pulled: "&7撤离点 &f{point} &7尚未开启，需要先拉闸。"
+
+  # 全局倒计时结束通知
+  global-countdown-finished: "&7撤离点 &f{point} &7的倒计时已结束。"
+
+  # 闸门操作相关
+  switch-unknown: "&c未知的闸门编号。"
+  switch-cooldown: "&c闸门正在冷却中，请稍后再试。"
+  switch-already-active: "&c该闸门已经处于开启状态。"
+
+  # 目标世界未加载
+  destination-unloaded: "&c撤离失败：目标世界尚未加载，请联系管理员。"
+
+  # 无权限
+  no-permission: "&c你没有权限执行该命令。"
+
+# ========================================================
+#  撤离点定义
+#  可以定义任意多个，key 就是撤离点 id
+# ========================================================
+extraction-points:
+
+  # ------------------------------------------------------
+  #  示例 1：常规撤离点
+  # ------------------------------------------------------
+  harbor:
+    enabled: true
+    type: NORMAL
+    # WorldGuard 区域名（必填）
+    region: "extract_harbor"
+    # 限定世界（可选）。填了则只有该世界的同名区域会触发。
+    world: "world"
+    # 玩家需要停留的秒数
+    countdown: 10
+
+    # 撤离目标（安全区）
+    destination:
+      world: "world"
+      x: 100.5
+      y: 65.0
+      z: -200.5
+      yaw: 0.0
+      pitch: 0.0
+
+    # 倒计时中断条件
+    interrupt:
+      on-move-out: true   # 离开区域是否清零
+      on-damage: false    # 受伤是否中断
+      on-death: true      # 死亡是否中断
+      on-teleport: true   # 被传送是否中断
+
+    # BossBar 显示
+    bossbar:
+      title: "&a撤离中... &f{time}"
+      color: "GREEN"
+      style: "PROGRESS"
+
+    # 撤离后的处理
+    after-extract:
+      clear-inventory: false  # 是否清空【全部】背包（含快捷栏与护甲），慎用
+      # 【丢包撤】开关。true 时撤离只保留：
+      #   - 快捷栏 9 格
+      #   - 护甲 4 格
+      #   - 副手 1 格
+      # 主背包的 27 格会被全部清空。
+      # 三种撤离类型（常规/物品/拉闸）都可以启用这个开关。
+      lose-backpack: false
+      heal: true              # 是否回满血
+      feed: true              # 是否灭火
+      # 自定义播报，留空则用 settings.broadcast-extract-message
+      broadcast: "&7[&a撤离&7] &f{player} &7已从 &f{point} &7成功撤离"
+
+  # ------------------------------------------------------
+  #  示例 2：拉闸撤离点（类似三角洲行动）
+  # ------------------------------------------------------
+  power_plant:
+    enabled: true
+    type: SWITCH
+    region: "extract_power"
+    world: "world"
+
+    destination:
+      world: "world"
+      x: 0.5
+      y: 70.0
+      z: 0.5
+      yaw: 0.0
+      pitch: 0.0
+
+    interrupt:
+      on-move-out: false   # 拉闸撤离中，离开区域【不】中断全局倒计时
+      on-damage: false
+      on-death: true
+      on-teleport: false
+
+    bossbar:
+      title: "&c&l撤离窗口 &f{time}"
+      color: "RED"
+      style: "NOTCHED_10"   # 可选（Adventure 仅此 5 种）：PROGRESS / NOTCHED_6 / NOTCHED_10 / NOTCHED_12 / NOTCHED_20
+
+    # ---- 拉闸配置 ----
+    switch:
+      # 闸门唯一编号。拉闸命令 /extract switch <id> 使用它。
+      id: "power_plant_main"
+      # 拉闸后开始多少秒的全局倒计时
+      global-countdown: 45
+      # 两次拉闸之间的冷却秒数
+      cooldown: 60
+      # 倒计时结束后是否自动复位闸门（允许再次拉闸）
+      reset-after-finish: true
+
+      # ---- 拉闸警报 ----
+      alarm:
+        # 警报锚点：闸门所在坐标。通知半径以此点为中心计算。
+        location:
+          world: "world"
+          x: 0.0
+          y: 64.0
+          z: 0.0
+        # 自定义警报音效。
+        # 支持新版名字空间写法（推荐）：minecraft:block.bell.resonate
+        # 也支持旧版枚举名：BLOCK_BELL_RESONATE
+        sound: "minecraft:block.bell.resonate"
+        volume: 1.5
+        pitch: 0.5
+        # 本撤离点专属的通知半径。不填或 <=0 则使用 settings.notification.radius（默认 300）
+        radius: 300.0
+
+    after-extract:
+      clear-inventory: false
+      lose-backpack: false   # 丢包撤开关，详见上方 harbor 示例的说明
+      heal: true
+      feed: true
+      broadcast: "&7[&c撤离&7] &f{player} &7通过 &f{point} &7撤离"
+
+  # ------------------------------------------------------
+  #  示例 3：物品撤离点
+  # ------------------------------------------------------
+  vault:
+    enabled: true
+    type: ITEM
+    region: "extract_vault"
+    world: "world"
+    countdown: 8
+
+    destination:
+      world: "world"
+      x: -50.5
+      y: 68.0
+      z: 120.5
+      yaw: 90.0
+      pitch: 0.0
+
+    interrupt:
+      on-move-out: true
+      on-damage: true      # 物品撤离点通常更危险，受伤就中断
+      on-death: true
+      on-teleport: true
+
+    bossbar:
+      title: "&6保险箱撤离中... &f{time}"
+      color: "YELLOW"
+      style: "NOTCHED_6"
+
+    # ---- 物品条件 ----
+    # 单个物品需求用 item:，多个用 items: 列表（全部满足才行）
+    item:
+      material: "PAPER"
+      amount: 1
+      # true = 撤离时消耗掉；false = 仅需持有
+      consume: true
+      # 可选：按显示名关键字区分同名物品
+      name-contains: "保险箱钥匙"
+
+    # 多个物品的写法（与上面的 item 可同时存在）：
+    # items:
+    #   - material: "PAPER"
+    #     amount: 1
+    #     consume: true
+    #     name-contains: "保险箱钥匙"
+    #   - material: "GOLD_INGOT"
+    #     amount: 3
+    #     consume: false
+
+    after-extract:
+      clear-inventory: false
+      lose-backpack: false   # 丢包撤开关。物品撤离点常用 true：交出物品后还得丢包
+      heal: true
+      feed: true
+      broadcast: "&7[&c撤离&7] &f{player} &7携带物品从 &f{point} &7撤离"
