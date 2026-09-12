@@ -1,5 +1,5 @@
 name: ExtractionPoints
-version: '1.0.1'
+version: '1.0.2'
 main: com.example.extraction.ExtractionPlugin
 api-version: '1.20'
 author: Example

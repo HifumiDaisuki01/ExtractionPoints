@@ -198,6 +198,21 @@ extraction-points:
       # 倒计时结束后是否自动复位闸门（允许再次拉闸）
       reset-after-finish: true
 
+      # ---- 拉闸后控制台命令（完全可选）----
+      # 不写 console-commands 这一项（或留空列表）就不会执行任何命令。
+      # 拉闸成功时，下面每条命令以【控制台】身份依次执行。
+      # 可用占位符：
+      #   {player} - 触发拉闸的玩家名（控制台/命令方块触发时为 CONSOLE）
+      #   {point}  - 撤离点 id
+      #   {switch} - 闸门 id
+      #   {time}   - 全局倒计时秒数
+      # 示例（按需自行启用并修改）：
+      # console-commands:
+      #   - "tellraw {player} {\"text\":\"警报：你触发了撤离点！\",\"color\":\"red\"}"
+      #   - "playsound minecraft:block.bell.resonate master {player}"
+      #   - "effect give {player} minecraft:glowing 38 0"
+
+
       # ---- 物理拉杆绑定（推荐，替代命令方块）----
       # 用 /extract bind <id> 绑定后，玩家右键这些拉杆即触发拉闸。
       # 拉闸结果（成功/冷却/已开启）只发给触发者本人，不会广播失败信息。

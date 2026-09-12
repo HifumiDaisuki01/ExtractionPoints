@@ -340,7 +340,37 @@ public class ExtractionManager {
         // ★ 警报声：只对范围内的玩家播放
         playNearby(point, point.getAlarmSound(), point.getAlarmVolume(), point.getAlarmPitch());
 
+        // ★ 拉闸后控制台命令（可选）：替换占位符后以控制台身份执行
+        runSwitchCommands(point, operator);
+
         return null;
+    }
+
+    /**
+     * 执行撤离点配置的拉闸命令（switch.console-commands）。
+     *
+     * <p>占位符：{player}=触发者名（控制台触发时为 CONSOLE）、{point}=撤离点 id、
+     * {switch}=闸门 id、{time}=全局倒计时秒数。
+     * 任何一条命令执行出错都不影响后续命令与拉闸流程。
+     */
+    private void runSwitchCommands(ExtractPoint point, Player operator) {
+        if (point.getConsoleCommands().isEmpty()) return;
+        String playerName = operator == null ? "CONSOLE" : operator.getName();
+        for (String raw : point.getConsoleCommands()) {
+            if (raw == null || raw.isBlank()) continue;
+            String cmd = Text.replace(raw,
+                    "player", playerName,
+                    "point", point.getId(),
+                    "switch", point.getSwitchId(),
+                    "time", String.valueOf(point.getGlobalCountdown()));
+            try {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                plugin.getLogger().info("拉闸命令 [" + point.getId() + "] 已执行: " + cmd);
+            } catch (Throwable t) {
+                plugin.getLogger().warning("拉闸命令执行失败 [" + point.getId() + "]: "
+                        + cmd + " -> " + t.getMessage());
+            }
+        }
     }
 
     /** 直接为某撤离点启动全局倒计时。 */

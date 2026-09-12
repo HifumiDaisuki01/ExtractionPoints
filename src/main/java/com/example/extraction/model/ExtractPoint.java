@@ -46,6 +46,9 @@ public class ExtractPoint {
     // 物理拉杆绑定：这些坐标的拉杆被右键时触发拉闸（多人地图可绑多个）
     private final List<Location> levers;
 
+    // 拉闸后以控制台身份执行的命令（完全可选；支持 {player} {point} {switch} {time} 占位符）
+    private final List<String> consoleCommands;
+
     // 拉闸警报（仅通知闸点周围 radius 格内的玩家）
     private final Location alarmAnchor;       // 警报锚点（闸门位置）
     private final boolean explicitAlarmLocation; // 是否在配置中明确写了 x/y/z
@@ -72,6 +75,7 @@ public class ExtractPoint {
                         String bossBarColor, String bossBarStyle, boolean bossBarShowGlobal,
                         List<ItemCondition> items, String switchId, int globalCountdown, int switchCooldown,
                         boolean resetSwitchAfterFinish, List<Location> levers,
+                        List<String> consoleCommands,
                         Location alarmAnchor, boolean explicitAlarmLocation,
                         Sound alarmSound, float alarmVolume, float alarmPitch, double alarmRadius,
                         boolean clearInventory, boolean loseBackpack, boolean healAfterExtract,
@@ -96,6 +100,7 @@ public class ExtractPoint {
         this.switchCooldown = switchCooldown;
         this.resetSwitchAfterFinish = resetSwitchAfterFinish;
         this.levers = levers == null ? new ArrayList<>() : levers;
+        this.consoleCommands = consoleCommands == null ? new ArrayList<>() : consoleCommands;
         this.alarmAnchor = alarmAnchor;
         this.explicitAlarmLocation = explicitAlarmLocation;
         this.alarmSound = alarmSound;
@@ -155,6 +160,10 @@ public class ExtractPoint {
         int switchCooldown = sw == null ? 60 : sw.getInt("cooldown", 60);
         boolean resetAfterFinish = sw == null || sw.getBoolean("reset-after-finish", true);
 
+        // 拉闸后控制台命令（完全可选，不写则不执行）
+        List<String> consoleCommands = sw == null
+                ? new ArrayList<>() : new ArrayList<>(sw.getStringList("console-commands"));
+
         // 物理拉杆绑定列表
         List<Location> levers = new ArrayList<>();
         if (sw != null) {
@@ -197,8 +206,8 @@ public class ExtractPoint {
 
         return new ExtractPoint(id, type, region, worldName, countdown, dest, onMoveOut, onDamage, onDeath,
                 onTeleport, barTitle, barColor, barStyle, barGlobal, items.list, switchId, globalCountdown,
-                switchCooldown, resetAfterFinish, levers, anchor, explicitAnchor, alarmSound, alarmVolume,
-                alarmPitch, alarmRadius,
+                switchCooldown, resetAfterFinish, levers, consoleCommands, anchor, explicitAnchor,
+                alarmSound, alarmVolume, alarmPitch, alarmRadius,
                 clearInv, loseBag, heal, feed, broadcast, enabled, permission);
     }
 
@@ -400,6 +409,17 @@ public class ExtractPoint {
     /** 绑定的物理拉杆坐标列表（右键即拉闸）。 */
     public List<Location> getLevers() {
         return levers;
+    }
+
+    /**
+     * 拉闸成功后以控制台身份执行的命令列表。
+     *
+     * <p>完全可选——配置中不写 {@code switch.console-commands} 即为空，不执行任何命令。
+     * 支持占位符：{@code {player}} 触发者名、{@code {point}} 撤离点 id、
+     * {@code {switch}} 闸门 id、{@code {time}} 全局倒计时秒数。
+     */
+    public List<String> getConsoleCommands() {
+        return consoleCommands;
     }
 
     public Location getAlarmAnchor() {

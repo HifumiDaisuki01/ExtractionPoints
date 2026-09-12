@@ -80,6 +80,21 @@
 - 成功时仍按配置半径向周围播放警报与文本（正常游戏设计）
 - 一个闸门可绑多个拉杆；`/extract switch` 命令保持可用，两者互不影响
 
+## 拉闸后执行控制台命令（可选）
+
+在撤离点的 `switch` 节点下添加 `console-commands` 列表即可，**不写就完全不执行**：
+
+```yaml
+switch:
+  id: "power_plant_main"
+  # ...
+  console-commands:
+    - "effect give {player} minecraft:glowing 38 0"   # 拉闸者发光 38 秒
+    - "tellraw {player} {\"text\":\"警报！\",\"color\":\"red\"}"
+```
+
+占位符：`{player}` 触发者（控制台触发时为 CONSOLE）、`{point}` 撤离点 id、`{switch}` 闸门 id、`{time}` 倒计时秒数。命令以控制台权限执行，出错不影响拉闸流程。
+
 ## 已实测项（Paper 1.20.1 + WG 7.0.9 沙盒环境）
 
 - ✅ 插件加载、3 个示例撤离点解析
