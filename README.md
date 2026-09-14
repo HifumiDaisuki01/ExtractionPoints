@@ -3,6 +3,11 @@
 > 适用：**Paper 1.20.1**（Paper 196 实测可加载）+ **WorldGuard 7.0.9**（实测挂钩成功）
 > 前置：WorldGuard 7.0.9 / WorldEdit 7.2.x（软依赖：未装 WG 时插件不会崩，仅功能停用）
 
+[![Minecraft](https://img.shields.io/badge/Minecraft-%s-green.svg)](https://papermc.io)
+[![Paper](https://img.shields.io/badge/Paper-%s-blue.svg)](https://papermc.io)
+[![Java](https://img.shields.io/badge/Java-%s-orange.svg)](https://adoptium.net)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 ## 安装
 
 1. 把 `ExtractionPoints-1.0.0.jar` 放进服务器 `plugins/` 目录
